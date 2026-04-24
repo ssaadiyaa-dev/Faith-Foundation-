@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAW — Creative Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; cursor: none !important; }
+
+    :root {
+      --black: #040404;
+      --surface: #0f0f0f;
+      --border: #1a1a1a;
+      --red: #FF2D55;
+      --white: #ffffff;
+      --gray: #777777;
+    }
+
+    html { overflow-x: hidden; scroll-behavior: auto; }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── CURSOR ── */
+    #cursor-dot {
+      position: fixed; top: 0; left: 0;
+      width: 7px; height: 7px;
+      background: var(--red); border-radius: 50%;
+      pointer-events: none; z-index: 9998;
+      will-change: transform;
+    }
+    #cursor-ring {
+      position: fixed; top: 0; left: 0;
+      width: 38px; height: 38px;
+      border: 1.5px solid rgba(255,45,85,0.55);
+      border-radius: 50%;
+      pointer-events: none; z-index: 9997;
+      will-change: transform;
+      transition: width .25s, height .25s, border-color .25s;
+    }
+    body.hovered #cursor-ring { width: 62px; height: 62px; border-color: rgba(255,45,85,0.9); }
+    body.hovered #cursor-dot  { width: 10px; height: 10px; }
+
+    /* ── PRELOADER ── */
+    #preloader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--black);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2rem;
+    }
+    .pre-letters { display: flex; gap: .08em; overflow: hidden; }
+    .pre-letter {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 16vw, 14rem);
+      line-height: 1; color: var(--white);
+      transform: translateY(110%);
+      display: block;
+    }
+    .pre-bar-track { width: min(280px,60vw); height: 1px; background: var(--border); position: relative; overflow: hidden; }
+    .pre-bar-fill  { position: absolute; left: 0; top: 0; height: 100%; width: 0; background: var(--red); }
+    .pre-pct       { font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--gray); }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 1.6rem 3.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background .4s, padding .4s, border-color .4s;
+      opacity: 0;
+    }
+    nav.scrolled {
+      background: rgba(4,4,4,.92);
+      backdrop-filter: blur(14px);
+      padding: 1rem 3.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: .06em; color: var(--white); text-decoration: none; }
+    .nav-logo span { color: var(--red); }
+    .nav-links { display: flex; gap: 2.8rem; list-style: none; }
+    .nav-links a {
+      font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--gray); text-decoration: none;
+      position: relative; transition: color .3s;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: -3px; left: 0;
+      width: 0; height: 1px; background: var(--red); transition: width .3s;
+    }
+    .nav-links a:hover { color: var(--white); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta {
+      font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--white); background: var(--red);
+      padding: .6rem 1.5rem; text-decoration: none;
+      transition: background .3s;
+    }
+    .nav-cta:hover { background: #ff4d6d; }
+    @media(max-width:768px){ nav { padding: 1.2rem 1.5rem; } nav.scrolled{ padding:.9rem 1.5rem; } .nav-links,.nav-cta{ display:none; } }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100svh; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 0 3.5rem 4.5rem;
+    }
+    .hero-bg-word {
+      position: absolute; top: 50%; right: -1%;
+      transform: translateY(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(10rem,26vw,34rem);
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(255,255,255,.025);
+      line-height: 1; pointer-events: none; user-select: none;
+      will-change: transform;
+    }
+    .hero-eyebrow { font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--red); margin-bottom: 1.6rem; opacity: 0; }
+    .hero-h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4.5rem,11.5vw,13.5rem); line-height: .91; }
+    .hero-line { display: block; overflow: hidden; }
+    .hero-line-inner { display: block; transform: translateY(110%); will-change: transform; }
+    .accent { color: var(--red); }
+    .hero-bottom { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 3rem; gap: 2rem; flex-wrap: wrap; }
+    .hero-desc { max-width: 380px; font-size: .95rem; line-height: 1.75; color: var(--gray); opacity: 0; }
+    .hero-scroll { display: flex; align-items: center; gap: 1rem; font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gray); opacity: 0; }
+    .scroll-line { width: 60px; height: 1px; background: var(--border); position: relative; overflow: hidden; }
+    .scroll-line::after {
+      content: ''; position: absolute; left: -100%; top: 0; height: 100%; width: 100%;
+      background: var(--red); animation: sline 2s ease-in-out infinite;
+    }
+    @keyframes sline { 0%{ left:-100%; } 100%{ left:100%; } }
+    @media(max-width:768px){ #hero{ padding:0 1.5rem 3.5rem; } .hero-bottom{ flex-direction:column; align-items:flex-start; } }
+
+    /* ── MARQUEE ── */
+    .marquee-wrap { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 1.2rem 0; overflow: hidden; background: var(--surface); }
+    .marquee-track { display: flex; gap: 3rem; white-space: nowrap; will-change: transform; }
+    .marquee-item { display: flex; align-items: center; gap: 1.5rem; font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: .09em; color: var(--gray); flex-shrink: 0; }
+    .mdot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+
+    /* ── SHARED ── */
+    .section-label { font-size: .65rem; letter-spacing: .22em; text-transform: uppercase; color: var(--red); margin-bottom: 1.5rem; }
+    .section-h { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem,7vw,8rem); line-height: .94; }
+
+    /* ── ABOUT ── */
+    #about { padding: 9rem 3.5rem; }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7rem; align-items: start; margin-top: 4rem; }
+    .about-body { font-size: 1rem; line-height: 1.85; color: var(--gray); margin-bottom: 2.5rem; }
+    .about-link { display: inline-flex; align-items: center; gap: .75rem; font-size: .75rem; letter-spacing: .16em; text-transform: uppercase; color: var(--white); text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: .5rem; transition: border-color .3s, gap .3s; }
+    .about-link:hover { border-color: var(--red); gap: 1.2rem; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+    .stat { border-top: 1px solid var(--border); padding-top: 1.5rem; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem,5.5vw,6rem); line-height: 1; color: var(--white); }
+    .stat-num em { font-style: normal; color: var(--red); }
+    .stat-lbl { font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; color: var(--gray); margin-top: .5rem; }
+    @media(max-width:900px){ #about{ padding:6rem 1.5rem; } .about-grid{ grid-template-columns:1fr; gap:4rem; } }
+
+    /* ── WORK ── */
+    #work { padding: 9rem 3.5rem; }
+    .work-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3.5rem; gap: 2rem; flex-wrap: wrap; }
+    .work-all { font-size: .72rem; letter-spacing: .15em; text-transform: uppercase; color: var(--gray); text-decoration: none; border-bottom: 1px solid var(--border); padding-bottom: .3rem; transition: color .3s, border-color .3s; }
+    .work-all:hover { color: var(--white); border-color: var(--red); }
+    .work-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+    .work-card { position: relative; overflow: hidden; aspect-ratio: 4/3; background: var(--surface); }
+    .work-card:first-child { grid-column: 1/-1; aspect-ratio: 21/9; }
+    .wc-bg { position: absolute; inset: 0; transition: transform .7s cubic-bezier(.16,1,.3,1); will-change: transform; }
+    .work-card:hover .wc-bg { transform: scale(1.05); }
+    .wc-overlay { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; }
+    .work-card:hover .wc-overlay { opacity: .13; }
+    .wc-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 2rem; background: linear-gradient(to top, rgba(4,4,4,.88) 0%, transparent 100%); transform: translateY(8px); opacity: 0; transition: opacity .4s, transform .4s; }
+    .work-card:hover .wc-info { opacity: 1; transform: translateY(0); }
+    .wc-tag { font-size: .63rem; letter-spacing: .2em; text-transform: uppercase; color: var(--red); margin-bottom: .4rem; }
+    .wc-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.5rem,2.8vw,2.8rem); line-height: 1.1; }
+    .wc-idx { position: absolute; top: 1.5rem; right: 1.5rem; font-size: .62rem; letter-spacing: .14em; color: rgba(255,255,255,.25); }
+    .grid-lines { position: absolute; inset: 0; opacity: .04; background-image: repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.5) 39px,rgba(255,255,255,.5) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.5) 39px,rgba(255,255,255,.5) 40px); pointer-events: none; }
+    .bg1 { background: linear-gradient(135deg,#0d0d0d,#1a0808); }
+    .bg2 { background: linear-gradient(135deg,#080810,#0a0a1a); }
+    .bg3 { background: linear-gradient(135deg,#080808,#100808); }
+    .bg4 { background: linear-gradient(135deg,#050505,#0a050a); }
+    @media(max-width:768px){ #work{ padding:6rem 1.5rem; } .work-grid{ grid-template-columns:1fr; } .work-card:first-child{ grid-column:auto; aspect-ratio:4/3; } }
+
+    /* ── SERVICES ── */
+    #services { padding: 9rem 3.5rem; background: var(--surface); }
+    .services-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; margin-top: 4rem; border: 1px solid var(--border); }
+    .svc { padding: 3rem 2.5rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; overflow: hidden; transition: background .4s; }
+    .svc:nth-child(3n) { border-right: none; }
+    .svc:nth-child(n+4) { border-bottom: none; }
+    .svc::before { content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 2px; background: var(--red); transition: width .5s cubic-bezier(.16,1,.3,1); }
+    .svc:hover::before { width: 100%; }
+    .svc:hover { background: rgba(255,45,85,.03); }
+    .svc-num { font-size: .63rem; letter-spacing: .16em; color: var(--red); margin-bottom: 1.8rem; }
+    .svc-icon { width: 30px; height: 30px; margin-bottom: 1.4rem; color: var(--gray); }
+    .svc-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: .03em; margin-bottom: 1rem; }
+    .svc-desc { font-size: .875rem; line-height: 1.75; color: var(--gray); }
+    .svc-tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; }
+    .svc-tag { font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gray); border: 1px solid var(--border); padding: .28rem .65rem; transition: border-color .3s, color .3s; }
+    .svc:hover .svc-tag { border-color: rgba(255,45,85,.4); color: rgba(255,255,255,.7); }
+    @media(max-width:900px){ #services{ padding:6rem 1.5rem; } .services-grid{ grid-template-columns:1fr 1fr; } .svc:nth-child(3n){ border-right:1px solid var(--border); } .svc:nth-child(2n){ border-right:none; } }
+    @media(max-width:600px){ .services-grid{ grid-template-columns:1fr; } .svc{ border-right:none; } }
+
+    /* ── PROCESS ── */
+    #process { padding: 9rem 3.5rem; }
+    .process-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 7rem; margin-top: 4rem; }
+    .process-sticky { position: sticky; top: 130px; align-self: start; }
+    .proc-line-wrap { margin-top: 2rem; width: 1px; height: 200px; background: var(--border); position: relative; overflow: hidden; }
+    .proc-line-fill { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--red); transform: scaleY(0); transform-origin: top; will-change: transform; }
+    .process-steps { display: flex; flex-direction: column; }
+    .proc-step { display: grid; grid-template-columns: auto 1fr; gap: 2.5rem; padding: 3rem 0; border-top: 1px solid var(--border); transition: opacity .4s; }
+    .proc-n { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; line-height: 1; color: transparent; -webkit-text-stroke: 1px var(--border); transition: -webkit-text-stroke-color .4s; }
+    .proc-step.active .proc-n { -webkit-text-stroke-color: var(--red); }
+    .proc-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; line-height: 1; margin-bottom: .8rem; color: var(--gray); transition: color .4s; }
+    .proc-step.active .proc-title { color: var(--white); }
+    .proc-desc { font-size: .875rem; line-height: 1.78; color: var(--gray); transition: color .4s; }
+    .proc-step.active .proc-desc { color: rgba(255,255,255,.65); }
+    @media(max-width:900px){ #process{ padding:6rem 1.5rem; } .process-layout{ grid-template-columns:1fr; gap:3rem; } .process-sticky{ position:static; } }
+
+    /* ── CTA ── */
+    #cta { padding: 11rem 3.5rem; text-align: center; position: relative; overflow: hidden; }
+    .cta-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); border-radius: 50%; border: 1px solid rgba(255,45,85,.07); pointer-events: none; }
+    .cta-ring:nth-child(1) { width: clamp(400px,70vw,920px); height: clamp(400px,70vw,920px); }
+    .cta-ring:nth-child(2) { width: clamp(260px,48vw,640px); height: clamp(260px,48vw,640px); border-color: rgba(255,45,85,.05); }
+    .cta-eye { font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; color: var(--red); margin-bottom: 2rem; position: relative; }
+    .cta-h { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3.5rem,9vw,12rem); line-height: .91; margin-bottom: 2.5rem; position: relative; }
+    .cta-h em { font-style: normal; color: var(--red); }
+    .cta-sub { font-size: 1rem; color: var(--gray); max-width: 500px; margin: 0 auto 3rem; line-height: 1.75; position: relative; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 1rem;
+      font-size: .78rem; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--black); background: var(--white);
+      padding: 1.1rem 2.6rem; text-decoration: none;
+      position: relative; overflow: hidden;
+      transition: color .4s;
+    }
+    .cta-btn::before { content: ''; position: absolute; inset: 0; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .4s cubic-bezier(.16,1,.3,1); }
+    .cta-btn:hover::before { transform: scaleX(1); }
+    .cta-btn:hover { color: var(--white); }
+    .cta-btn span, .cta-btn svg { position: relative; z-index: 1; }
+    .cta-btn svg { transition: transform .4s; }
+    .cta-btn:hover svg { transform: translateX(4px); }
+    @media(max-width:768px){ #cta{ padding:7rem 1.5rem; } }
+
+    /* ── FOOTER ── */
+    footer { border-top: 1px solid var(--border); padding: 5rem 3.5rem 2rem; background: var(--surface); }
+    .ft-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 4rem; padding-bottom: 4rem; border-bottom: 1px solid var(--border); }
+    .ft-brand-text { font-size: .875rem; line-height: 1.75; color: var(--gray); max-width: 280px; margin-top: 1rem; }
+    .ft-col-title { font-size: .63rem; letter-spacing: .22em; text-transform: uppercase; color: var(--gray); margin-bottom: 1.5rem; }
+    .ft-links { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+    .ft-links a { font-size: .9rem; color: rgba(255,255,255,.55); text-decoration: none; transition: color .3s; }
+    .ft-links a:hover { color: var(--white); }
+    .ft-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 2rem; gap: 1rem; flex-wrap: wrap; }
+    .ft-copy { font-size: .72rem; color: var(--gray); letter-spacing: .05em; }
+    .ft-legal { display: flex; gap: 2rem; }
+    .ft-legal a { font-size: .72rem; color: var(--gray); text-decoration: none; transition: color .3s; }
+    .ft-legal a:hover { color: var(--white); }
+    .ft-wordmark { font-family: 'Bebas Neue', sans-serif; font-size: clamp(5rem,16vw,20rem); line-height: .85; color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,.055); text-align: center; margin-top: 3.5rem; user-select: none; pointer-events: none; letter-spacing: .02em; }
+    @media(max-width:900px){ footer{ padding:4rem 1.5rem 2rem; } .ft-grid{ grid-template-columns:1fr 1fr; gap:2.5rem; } }
+    @media(max-width:600px){ .ft-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- PRELOADER -->
+<div id="preloader">
+  <div class="pre-letters">
+    <span class="pre-letter">C</span>
+    <span class="pre-letter">L</span>
+    <span class="pre-letter">A</span>
+    <span class="pre-letter">W</span>
+  </div>
+  <div class="pre-bar-track"><div class="pre-bar-fill" id="preBar"></div></div>
+  <p class="pre-pct">Loading — <span id="preCount">0%</span></p>
+</div>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="#" class="nav-logo" onclick="scrollTop(event)">CL<span>A</span>W</a>
+  <ul class="nav-links">
+    <li><a href="#work"     onclick="smoothTo(event,'work')">Work</a></li>
+    <li><a href="#services" onclick="smoothTo(event,'services')">Services</a></li>
+    <li><a href="#process"  onclick="smoothTo(event,'process')">Process</a></li>
+    <li><a href="#about"    onclick="smoothTo(event,'about')">About</a></li>
+  </ul>
+  <a href="#cta" class="nav-cta" onclick="smoothTo(event,'cta')">Start a Project</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg-word" id="heroBg">CLAW</div>
+  <p class="hero-eyebrow" id="heroEye">Creative Studio — Est. 2019</p>
+  <h1 class="hero-h1">
+    <span class="hero-line"><span class="hero-line-inner" id="hl1">DESIGN</span></span>
+    <span class="hero-line"><span class="hero-line-inner" id="hl2">THAT <span class="accent">LEAVES</span></span></span>
+    <span class="hero-line"><span class="hero-line-inner" id="hl3">ITS MARK</span></span>
+  </h1>
+  <div class="hero-bottom">
+    <p class="hero-desc" id="heroDesc">We partner with ambitious brands to craft digital experiences that are impossible to ignore. Strategy, design, and code — all under one roof.</p>
+    <div class="hero-scroll" id="heroScroll">
+      <div class="scroll-line"></div>
+      <span>Scroll to explore</span>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marqueeTrack">
+    <div class="marquee-item"><span class="mdot"></span><span>Brand Identity</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Web Design</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Development</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Motion</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Strategy</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>UX Research</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Design Systems</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Creative Direction</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Brand Identity</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Web Design</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Development</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Motion</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Strategy</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>UX Research</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Design Systems</span></div>
+    <div class="marquee-item"><span class="mdot"></span><span>Creative Direction</span></div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <p class="section-label">About Us</p>
+  <h2 class="section-h" id="aboutH">
+    We don't just<br>build websites.<br>We build <span class="accent">legacies.</span>
+  </h2>
+  <div class="about-grid">
+    <div>
+      <p class="about-body" id="aboutBody">
+        CLAW is a full-service creative studio built for brands that refuse to blend in.
+        We combine strategic thinking with obsessive craft to produce work that cuts through
+        the noise and drives real results.
+        <br><br>
+        From early-stage startups to global enterprises, we've partnered with companies
+        at every stage of growth — always bringing the same relentless attention to detail
+        and creative ambition.
+      </p>
+      <a href="#work" class="about-link" onclick="smoothTo(event,'work')">
+        View our work
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat"><div class="stat-num"><span class="cnt" data-target="50">0</span><em>+</em></div><p class="stat-lbl">Projects Delivered</p></div>
+      <div class="stat"><div class="stat-num"><span class="cnt" data-target="98">0</span><em>%</em></div><p class="stat-lbl">Client Satisfaction</p></div>
+      <div class="stat"><div class="stat-num"><span class="cnt" data-target="7">0</span><em></em></div><p class="stat-lbl">Years of Excellence</p></div>
+      <div class="stat"><div class="stat-num"><span class="cnt" data-target="30">0</span><em>+</em></div><p class="stat-lbl">Global Clients</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WORK -->
+<section id="work">
+  <div class="work-head">
+    <div>
+      <p class="section-label">Selected Work</p>
+      <h2 class="section-h">Projects that<br><span class="accent">moved</span> the needle.</h2>
+    </div>
+    <a href="#" class="work-all">View all projects &rarr;</a>
+  </div>
+  <div class="work-grid">
+    <div class="work-card"><div class="wc-bg bg1"></div><div class="grid-lines"></div><div class="wc-overlay" style="background:#FF2D55"></div><div class="wc-info"><p class="wc-tag">Brand / Identity</p><h3 class="wc-title">APEX Brand Identity</h3></div><span class="wc-idx">01</span></div>
+    <div class="work-card"><div class="wc-bg bg2"></div><div class="grid-lines"></div><div class="wc-overlay" style="background:#4D7EFF"></div><div class="wc-info"><p class="wc-tag">Web Design / Dev</p><h3 class="wc-title">Luminary Digital</h3></div><span class="wc-idx">02</span></div>
+    <div class="work-card"><div class="wc-bg bg3"></div><div class="grid-lines"></div><div class="wc-overlay" style="background:#FFE600"></div><div class="wc-info"><p class="wc-tag">E-Commerce / Motion</p><h3 class="wc-title">Noir Fashion</h3></div><span class="wc-idx">03</span></div>
+    <div class="work-card"><div class="wc-bg bg4"></div><div class="grid-lines"></div><div class="wc-overlay" style="background:#00D4AA"></div><div class="wc-info"><p class="wc-tag">UX / Development</p><h3 class="wc-title">Vortex App</h3></div><span class="wc-idx">04</span></div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services">
+  <p class="section-label">What We Do</p>
+  <h2 class="section-h">End-to-end<br><span class="accent">creative</span> services.</h2>
+  <div class="services-grid">
+    <div class="svc">
+      <p class="svc-num">01</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="16" cy="16" r="12"/><path d="M16 4v24M4 16h24"/><circle cx="16" cy="16" r="4" fill="currentColor" stroke="none"/></svg>
+      <h3 class="svc-title">Brand Identity</h3>
+      <p class="svc-desc">We build brands that stand for something. Logos, colour systems, typography, guidelines — everything you need to show up consistently.</p>
+      <div class="svc-tags"><span class="svc-tag">Logo Design</span><span class="svc-tag">Brand Guidelines</span><span class="svc-tag">Visual Identity</span></div>
+    </div>
+    <div class="svc">
+      <p class="svc-num">02</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="6" width="26" height="20" rx="2"/><path d="M3 12h26"/><circle cx="7" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="11" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/></svg>
+      <h3 class="svc-title">Web Design</h3>
+      <p class="svc-desc">Pixel-perfect interfaces crafted for humans. We design websites and apps that are intuitive, beautiful, and impossible to forget.</p>
+      <div class="svc-tags"><span class="svc-tag">UI Design</span><span class="svc-tag">UX Research</span><span class="svc-tag">Prototyping</span></div>
+    </div>
+    <div class="svc">
+      <p class="svc-num">03</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M10 10l-6 6 6 6M22 10l6 6-6 6M18 6l-4 20" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3 class="svc-title">Development</h3>
+      <p class="svc-desc">Clean, fast, scalable code. We build with Next.js, React, and modern tooling — delivering performance-first digital products.</p>
+      <div class="svc-tags"><span class="svc-tag">Next.js</span><span class="svc-tag">React</span><span class="svc-tag">TypeScript</span></div>
+    </div>
+    <div class="svc">
+      <p class="svc-num">04</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6 16c0-5.5 4.5-10 10-10s10 4.5 10 10" stroke-linecap="round"/><circle cx="16" cy="16" r="3"/><path d="M16 19v7" stroke-linecap="round"/></svg>
+      <h3 class="svc-title">Motion & Animation</h3>
+      <p class="svc-desc">Motion that has purpose. We use GSAP, Framer Motion, and After Effects to bring interfaces to life without sacrificing performance.</p>
+      <div class="svc-tags"><span class="svc-tag">GSAP</span><span class="svc-tag">After Effects</span><span class="svc-tag">WebGL</span></div>
+    </div>
+    <div class="svc">
+      <p class="svc-num">05</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M4 26l7-8 5 4 5-10 7 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <h3 class="svc-title">Strategy</h3>
+      <p class="svc-desc">Good design follows clear thinking. We help define positioning, messaging, and go-to-market strategy before a single pixel is placed.</p>
+      <div class="svc-tags"><span class="svc-tag">Brand Strategy</span><span class="svc-tag">Positioning</span><span class="svc-tag">Messaging</span></div>
+    </div>
+    <div class="svc">
+      <p class="svc-num">06</p>
+      <svg class="svc-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M16 3l4 8 9 1.3-6.5 6.3 1.5 9L16 23l-8 4.6 1.5-9L3 12.3l9-1.3z" stroke-linejoin="round"/></svg>
+      <h3 class="svc-title">Creative Direction</h3>
+      <p class="svc-desc">The glue that holds everything together. Our creative directors ensure every touchpoint tells a coherent, compelling story.</p>
+      <div class="svc-tags"><span class="svc-tag">Art Direction</span><span class="svc-tag">Campaigns</span><span class="svc-tag">Copywriting</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS -->
+<section id="process">
+  <p class="section-label">How We Work</p>
+  <div class="process-layout">
+    <div class="process-sticky">
+      <h2 class="section-h">Our<br><span class="accent">process</span><br>is the<br>product.</h2>
+      <div class="proc-line-wrap"><div class="proc-line-fill" id="procLine"></div></div>
+    </div>
+    <div class="process-steps">
+      <div class="proc-step" data-step>
+        <div class="proc-n">01</div>
+        <div><h3 class="proc-title">Discover</h3><p class="proc-desc">We begin every engagement with deep discovery. Stakeholder interviews, competitor audits, audience research — we don't skip steps. Understanding your world is non-negotiable before we touch a single deliverable.</p></div>
+      </div>
+      <div class="proc-step" data-step>
+        <div class="proc-n">02</div>
+        <div><h3 class="proc-title">Define</h3><p class="proc-desc">Raw insight becomes clear direction. We align on positioning, messaging, and creative vision. This is where strategy crystallises into a shared north star that guides every decision moving forward.</p></div>
+      </div>
+      <div class="proc-step" data-step>
+        <div class="proc-n">03</div>
+        <div><h3 class="proc-title">Design</h3><p class="proc-desc">Concepts are pressure-tested through iterations. We prototype fast, gather feedback, and refine relentlessly until every element earns its place. Craft without compromise.</p></div>
+      </div>
+      <div class="proc-step" data-step>
+        <div class="proc-n">04</div>
+        <div><h3 class="proc-title">Build</h3><p class="proc-desc">Design comes to life in code. We engineer for performance, accessibility, and longevity — writing clean, maintainable systems your team can grow with for years to come.</p></div>
+      </div>
+      <div class="proc-step" data-step>
+        <div class="proc-n">05</div>
+        <div><h3 class="proc-title">Launch</h3><p class="proc-desc">We don't hand off and disappear. Launch is just the beginning. We monitor, optimise, and iterate alongside you to ensure the work performs as beautifully in the wild as it did in our studio.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-ring"></div>
+  <div class="cta-ring"></div>
+  <p class="cta-eye" id="ctaEye">Ready to Begin?</p>
+  <h2 class="cta-h" id="ctaH">LET'S BUILD<br>SOMETHING <em>GREAT.</em></h2>
+  <p class="cta-sub" id="ctaSub">Tell us about your project. We'll get back to you within 24 hours with honest thoughts and a clear path forward.</p>
+  <a href="mailto:hello@clawstudio.co" class="cta-btn" id="ctaBtn">
+    <span>Get in Touch</span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="ft-grid">
+    <div>
+      <a href="#" class="nav-logo" style="font-size:2rem;display:inline-block" onclick="scrollTop(event)">CL<span>A</span>W</a>
+      <p class="ft-brand-text">A creative studio building digital experiences that leave a lasting mark on the brands and people they touch.</p>
+    </div>
+    <div>
+      <p class="ft-col-title">Navigation</p>
+      <ul class="ft-links">
+        <li><a href="#work"     onclick="smoothTo(event,'work')">Work</a></li>
+        <li><a href="#services" onclick="smoothTo(event,'services')">Services</a></li>
+        <li><a href="#process"  onclick="smoothTo(event,'process')">Process</a></li>
+        <li><a href="#about"    onclick="smoothTo(event,'about')">About</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="ft-col-title">Social</p>
+      <ul class="ft-links">
+        <li><a href="#">Twitter</a></li>
+        <li><a href="#">Instagram</a></li>
+        <li><a href="#">LinkedIn</a></li>
+        <li><a href="#">Dribbble</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="ft-col-title">Contact</p>
+      <ul class="ft-links">
+        <li><a href="mailto:hello@clawstudio.co">hello@clawstudio.co</a></li>
+        <li><a href="tel:+12125550100">+1 (212) 555-0100</a></li>
+        <li><a href="#">New York, NY 10001</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="ft-bottom">
+    <p class="ft-copy">&copy; 2025 CLAW Studio. All rights reserved.</p>
+    <div class="ft-legal">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Cookies</a>
+    </div>
+  </div>
+  <div class="ft-wordmark">CLAW</div>
+</footer>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ── helpers ── */
+  function scrollTop(e){ e.preventDefault(); window.scrollTo({top:0,behavior:'smooth'}); }
+  function smoothTo(e,id){ e.preventDefault(); document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+  /* ── cursor ── */
+  const dot  = document.getElementById('cursor-dot');
+  const ring = document.getElementById('cursor-ring');
+  gsap.set([dot,ring],{xPercent:-50,yPercent:-50});
+  const mDotX  = gsap.quickTo(dot, 'x',{duration:.08,ease:'power3.out'});
+  const mDotY  = gsap.quickTo(dot, 'y',{duration:.08,ease:'power3.out'});
+  const mRingX = gsap.quickTo(ring,'x',{duration:.42,ease:'power3.out'});
+  const mRingY = gsap.quickTo(ring,'y',{duration:.42,ease:'power3.out'});
+  window.addEventListener('mousemove',e=>{
+    mDotX(e.clientX); mDotY(e.clientY);
+    mRingX(e.clientX); mRingY(e.clientY);
+  });
+  document.querySelectorAll('a,button,.work-card,.svc').forEach(el=>{
+    el.addEventListener('mouseenter',()=>document.body.classList.add('hovered'));
+    el.addEventListener('mouseleave',()=>document.body.classList.remove('hovered'));
+  });
+
+  /* ── preloader ── */
+  (function(){
+    document.body.style.overflow='hidden';
+    const letters = document.querySelectorAll('.pre-letter');
+    const bar     = document.getElementById('preBar');
+    const countEl = document.getElementById('preCount');
+    const pre     = document.getElementById('preloader');
+    const tl = gsap.timeline({
+      onComplete(){
+        pre.style.display='none';
+        document.body.style.overflow='';
+      }
+    });
+    tl.to(letters,{y:0,duration:.9,ease:'power4.out',stagger:.09});
+    const obj={v:0};
+    tl.to(obj,{v:100,duration:1.3,ease:'power2.inOut',onUpdate(){
+      countEl.textContent=Math.round(obj.v)+'%';
+      bar.style.width=obj.v+'%';
+    }},'<.05');
+    tl.addLabel('out','+=.35');
+    tl.to(letters,{y:'-120%',duration:.65,ease:'power4.in',stagger:.05},'out');
+    tl.to(pre,{yPercent:-100,duration:.85,ease:'power4.inOut'},'out+=.15');
+  })();
+
+  /* ── nav scroll ── */
+  const nav = document.getElementById('navbar');
+  gsap.fromTo(nav,{y:-30,opacity:0},{y:0,opacity:1,duration:.8,ease:'power3.out',delay:2.6});
+  window.addEventListener('scroll',()=>{
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  },{passive:true});
+
+  /* ── hero ── */
+  (function(){
+    const tl = gsap.timeline({delay:2.4});
+    tl.to('#heroEye',{opacity:1,y:0,duration:.7,ease:'power3.out'});
+    tl.to(['#hl1','#hl2','#hl3'],{y:0,duration:1,ease:'power4.out',stagger:.13},'-=.3');
+    tl.to(['#heroDesc','#heroScroll'],{opacity:1,y:0,duration:.7,ease:'power3.out',stagger:.1},'-=.45');
+    gsap.to('#heroBg',{
+      y:'28%',ease:'none',
+      scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:1.8}
+    });
+  })();
+
+  /* ── marquee ── */
+  gsap.to('#marqueeTrack',{x:'-50%',duration:30,ease:'none',repeat:-1});
+
+  /* ── about ── */
+  gsap.fromTo('#aboutH',{y:60,opacity:0},{y:0,opacity:1,duration:1,ease:'power4.out',
+    scrollTrigger:{trigger:'#about',start:'top 80%'}});
+  gsap.fromTo('#aboutBody',{y:40,opacity:0},{y:0,opacity:1,duration:.9,ease:'power3.out',
+    scrollTrigger:{trigger:'#aboutBody',start:'top 85%'}});
+  gsap.fromTo('#statsGrid',{x:50,opacity:0},{x:0,opacity:1,duration:.9,ease:'power3.out',
+    scrollTrigger:{trigger:'#statsGrid',start:'top 85%'}});
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const target=+el.dataset.target;
+    const o={v:0};
+    gsap.to(o,{v:target,duration:2,ease:'power2.out',
+      scrollTrigger:{trigger:el,start:'top 90%',once:true},
+      onUpdate(){ el.textContent=Math.round(o.v); }
+    });
+  });
+
+  /* ── work cards ── */
+  document.querySelectorAll('.work-card').forEach((card,i)=>{
+    gsap.fromTo(card,{y:80,opacity:0},{y:0,opacity:1,duration:1,ease:'power4.out',
+      delay:i*.08,scrollTrigger:{trigger:card,start:'top 90%'}});
+  });
+  gsap.fromTo('.work-head',{y:50,opacity:0},{y:0,opacity:1,duration:.9,ease:'power3.out',
+    scrollTrigger:{trigger:'#work',start:'top 80%'}});
+
+  /* ── services ── */
+  gsap.fromTo('#services .section-h, #services .section-label',
+    {y:50,opacity:0},{y:0,opacity:1,duration:.9,ease:'power3.out',stagger:.1,
+    scrollTrigger:{trigger:'#services',start:'top 80%'}});
+  document.querySelectorAll('.svc').forEach((card,i)=>{
+    gsap.fromTo(card,{y:50,opacity:0},{y:0,opacity:1,duration:.8,ease:'power3.out',
+      delay:(i%3)*.12,scrollTrigger:{trigger:card,start:'top 90%'}});
+  });
+
+  /* ── process ── */
+  gsap.fromTo('.process-sticky',{x:-50,opacity:0},{x:0,opacity:1,duration:1,ease:'power3.out',
+    scrollTrigger:{trigger:'#process',start:'top 80%'}});
+  gsap.fromTo('#procLine',{scaleY:0},{scaleY:1,ease:'none',
+    scrollTrigger:{trigger:'.process-steps',start:'top 70%',end:'bottom 30%',scrub:1}});
+  document.querySelectorAll('[data-step]').forEach((step,i)=>{
+    gsap.fromTo(step,{opacity:0,y:30},{opacity:1,y:0,duration:.8,ease:'power3.out',
+      scrollTrigger:{trigger:step,start:'top 85%'}});
+    ScrollTrigger.create({
+      trigger:step,start:'top 58%',end:'bottom 42%',
+      onEnter(){step.classList.add('active');},
+      onLeave(){step.classList.remove('active');},
+      onEnterBack(){step.classList.add('active');},
+      onLeaveBack(){step.classList.remove('active');}
+    });
+  });
+
+  /* ── CTA ── */
+  (function(){
+    const tl=gsap.timeline({scrollTrigger:{trigger:'#cta',start:'top 75%'}});
+    tl.fromTo('#ctaEye',{y:20,opacity:0},{y:0,opacity:1,duration:.6,ease:'power3.out'});
+    tl.fromTo('#ctaH',{y:60,opacity:0},{y:0,opacity:1,duration:1,ease:'power4.out'},'-=.2');
+    tl.fromTo('#ctaSub',{y:30,opacity:0},{y:0,opacity:1,duration:.7,ease:'power3.out'},'-=.5');
+    tl.fromTo('#ctaBtn',{y:20,opacity:0},{y:0,opacity:1,duration:.6,ease:'power3.out'},'-=.4');
+    gsap.to('.cta-ring:first-child',{scale:1.06,duration:3.5,ease:'sine.inOut',repeat:-1,yoyo:true});
+  })();
+
+  /* ── footer ── */
+  gsap.fromTo('.ft-grid',{y:50,opacity:0},{y:0,opacity:1,duration:1,ease:'power3.out',
+    scrollTrigger:{trigger:'footer',start:'top 85%'}});
+  gsap.fromTo('.ft-wordmark',{y:40,opacity:0},{y:0,opacity:1,duration:1.2,ease:'power3.out',
+    scrollTrigger:{trigger:'.ft-wordmark',start:'top 95%'}});
+</script>
+</body>
+</html>
